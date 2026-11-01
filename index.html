@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>seakeen</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+html,body{height:100%;background:#000;font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:#fff;overflow:hidden}
+#phone{position:relative;height:100%;width:100%;max-width:430px;margin:0 auto;background:#111;overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;padding-top:max(env(safe-area-inset-top),0px)}
+.screen.active{display:flex}
+/* WALLPAPER: taruh wallpaper.jpg sefolder dengan index.html. Kalau tidak ada, otomatis pakai gradasi. */
+.wall{background:url("wallpaper.jpg") center/cover,linear-gradient(160deg,#4a6fa5,#7b5ea7 55%,#e58fb0)}
+#status{position:absolute;top:0;left:0;right:0;z-index:80;display:flex;justify-content:space-between;padding:max(env(safe-area-inset-top),10px) 28px 0;font-size:15px;font-weight:600;pointer-events:none;height:44px;align-items:center}
+#status.dark{color:#000}
+
+#lock{align-items:center;text-align:center}
+#lock .date{margin-top:90px;font-size:19px;opacity:.85}
+#lock .time{font-size:92px;font-weight:600;letter-spacing:-2px;line-height:1}
+#lock .hint{margin-top:auto;margin-bottom:34px;font-size:14px;opacity:.7}
+.notif{width:calc(100% - 28px);margin:18px 14px 0;background:rgba(255,255,255,.22);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:20px;padding:12px 14px;text-align:left;font-size:14px}
+.notif b{display:block;margin-bottom:2px}
+
+#pass{align-items:center;justify-content:center;text-align:center}
+#pass h2{font-weight:400;font-size:20px;margin-bottom:22px}
+.dots{display:flex;gap:18px;margin-bottom:38px}
+.dots i{width:13px;height:13px;border:1.5px solid #fff;border-radius:50%}
+.dots i.on{background:#fff}
+.dots.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-12px)}40%,80%{transform:translateX(12px)}}
+.keys{display:grid;grid-template-columns:repeat(3,76px);gap:16px 22px}
+.keys button{height:76px;border-radius:50%;border:0;background:rgba(255,255,255,.2);color:#fff;font-size:32px;font-weight:300}
+.keys button:active{background:rgba(255,255,255,.45)}
+.keys .blank{background:none;font-size:16px}
+.pbtm{display:flex;justify-content:space-between;width:300px;margin-top:26px;font-size:16px}
+
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px 8px;padding:70px 18px 0}
+.app{display:flex;flex-direction:column;align-items:center;font-size:11px;gap:6px}
+.app span{text-shadow:0 1px 3px rgba(0,0,0,.45);color:#fff}
+.ico{width:60px;height:60px;border-radius:22%;display:flex;align-items:center;justify-content:center;font-size:30px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 6px rgba(0,0,0,.3);overflow:hidden}
+.badge{position:absolute;top:-6px;right:-6px;background:#ff3b30;border-radius:50%;min-width:20px;height:20px;font-size:13px;display:flex;align-items:center;justify-content:center}
+.dock{margin:auto 12px 14px;padding:12px;background:rgba(255,255,255,.25);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:30px;display:flex;justify-content:space-around}
+
+.light{background:#f2f2f7;color:#000}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:50px 16px 10px;font-size:17px;color:#007aff;background:rgba(249,249,249,.94);border-bottom:.5px solid #ccc}
+.bar b{color:#000;font-weight:600}
+.bar button{background:none;border:0;color:#007aff;font-size:17px;min-width:60px;text-align:left}
+.list{flex:1;overflow-y:auto}
+.row{padding:12px 16px;background:#fff;border-bottom:.5px solid #ddd}
+.row b{display:block;font-size:16px}
+.row span{font-size:14px;color:#8e8e93}
+.body{padding:18px;font-size:17px;line-height:1.45;white-space:pre-wrap;background:#fffbe8;flex:1;overflow-y:auto}
+.thread{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;background:#fff}
+.msg{max-width:75%;padding:8px 13px;border-radius:18px;font-size:16px;line-height:1.3}
+.them{background:#e5e5ea;align-self:flex-start}
+.me{background:#007aff;color:#fff;align-self:flex-end}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;overflow-y:auto;background:#fff;flex:1;align-content:start}
+.photos div{aspect-ratio:1;background:#ccc center/cover;display:flex;align-items:center;justify-content:center;font-size:11px;color:#888;text-align:center}
+#viewer{position:absolute;inset:0;background:#000;z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+#viewer.on{display:flex}
+#viewer .big{width:100%;aspect-ratio:3/4;background:#222 center/cover}
+
+#call{align-items:center;text-align:center;background:linear-gradient(#3a3f4a,#0b0c0e);z-index:70}
+#call .who{margin-top:110px;font-size:36px;font-weight:500}
+#call .sub{margin-top:6px;font-size:17px;opacity:.7}
+.cbtns{margin-top:auto;margin-bottom:80px;display:flex;gap:90px}
+.cbtns button{width:72px;height:72px;border-radius:50%;border:0;font-size:30px;color:#fff}
+.dec{background:#ff3b30}.acc{background:#34c759}
+.cbtns small{display:block;font-size:13px;margin-top:8px}
+.ring{animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.1)}}
+@media (prefers-reduced-motion:reduce){.ring{animation:none}}
+
+#vc{background:#000;z-index:75}
+#vc video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+#vc .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:120px;font-weight:600;background:linear-gradient(160deg,#3b4a6b,#1a1f2e)}
+#vc .top{position:absolute;top:50px;left:0;right:0;text-align:center;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+#vc .top b{display:block;font-size:20px}
+#vc .top span{font-size:15px;opacity:.85}
+#me{position:absolute;top:100px;right:14px;width:96px;height:140px;border-radius:14px;background:linear-gradient(#555,#222);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;opacity:.9}
+#subs{position:absolute;left:16px;right:16px;bottom:140px;text-align:center;font-size:17px;line-height:1.35;text-shadow:0 1px 6px #000;min-height:24px}
+#subs span{background:rgba(0,0,0,.55);padding:4px 10px;border-radius:8px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.vbtns{position:absolute;bottom:40px;left:0;right:0;display:flex;justify-content:center;gap:28px}
+.vbtns button{width:64px;height:64px;border-radius:50%;border:0;background:rgba(255,255,255,.22);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;font-size:26px}
+.vbtns button.off{background:#fff;color:#000}
+.vbtns .end{background:#ff3b30}
+.sr{display:flex;align-items:center;gap:5px}
+.sig{width:18px;height:12px;fill:currentColor}
+.sr b{font-size:14px;font-weight:600}
+.bat{position:relative;width:27px;height:13px;border-radius:4px;background:rgba(255,255,255,.35);display:inline-block}
+.bat i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:currentColor}
+.bat em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-style:normal;font-weight:700;color:#000}
+.bat::after{content:"";position:absolute;right:-3px;top:4px;width:2px;height:5px;border-radius:0 2px 2px 0;background:currentColor;opacity:.45}
+#status.dark .bat{background:rgba(0,0,0,.25)}
+#status.dark .bat em{color:#fff}
+.nh{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:12px;opacity:.85}
+.ni{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;font-style:normal}
+.na{font-style:normal;text-transform:uppercase;letter-spacing:.3px;flex:1}
+.nt{font-style:normal}
+.notif b{font-size:15px}
+.notif span{opacity:.95;line-height:1.3}
+.iw{position:relative}
+.ico svg{width:100%;height:100%;display:block}
+.badge{font-size:13px;font-weight:600;text-shadow:none}
+#me{overflow:hidden}
+#me video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+#me span{position:relative}
+.igl{font-family:"Snell Roundhand","Segoe Script","Brush Script MT",cursive;font-size:24px;font-weight:600}
+.stories{display:flex;gap:12px;padding:10px 12px;overflow-x:auto;border-bottom:.5px solid #ddd;background:#fff}
+.st{display:flex;flex-direction:column;align-items:center;font-size:11px;color:#111;gap:4px;flex:none;width:64px}
+.st .rg{width:60px;height:60px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#feda75,#d62976,#4f5bd5);display:flex}
+.st .rg .av{width:100%;height:100%;border:2px solid #fff}
+.st span{max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post{background:#fff;color:#000;padding-bottom:12px;border-bottom:.5px solid #eee}
+.pgh{display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:14px;font-weight:600}
+.pimg{width:100%;aspect-ratio:1;background:#d9dbe0 center/cover;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-size:12px}
+.pact{display:flex;gap:16px;font-size:24px;padding:8px 12px 2px;color:#111}
+.pact span{cursor:pointer;color:#111}
+.pact span.liked{color:#ff3040}
+.pl{font-size:14px;font-weight:600;padding:2px 12px}
+.pc{font-size:14px;padding:2px 12px;line-height:1.4;white-space:pre-wrap;color:#111}
+.pc b{display:inline;font-size:14px}
+.pt{font-size:11px;color:#8e8e93;padding:3px 12px;text-transform:uppercase}
+#app-instagram{color:#fff}
+.igtop{display:flex;align-items:center;justify-content:space-between;padding:50px 16px 10px;background:#0a0d11}
+.igword{font-size:27px;font-weight:700;letter-spacing:-1px}
+.igtop svg,.ignav svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#igFeed{background:#0a0d11}
+.ignav{display:flex;justify-content:space-around;align-items:center;padding:8px 8px 22px;background:#0a0d11;border-top:.5px solid #262a30}
+.igpill{width:68px;height:44px;border-radius:22px;background:#252a31;display:flex;align-items:center;justify-content:center}
+.igme{position:relative;width:34px;height:34px;border-radius:50%;background:#555 center/cover}
+.igme i{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:#ff3040;border:2px solid #0a0d11}
+.igstories{display:flex;gap:12px;padding:6px 12px 14px;overflow-x:auto}
+.igst{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:#e6e6e6;flex:none;width:84px;position:relative}
+.igring{width:84px;height:84px;border-radius:50%;padding:3px;background:linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5);display:flex}
+.igring.mine{background:#2b3037}
+.igav{width:100%;height:100%;border-radius:50%;background:#444 center/cover;border:3px solid #0a0d11;flex:none}
+.igplus{position:absolute;right:2px;top:56px;width:24px;height:24px;border-radius:50%;background:#0095f6;border:2px solid #0a0d11;color:#fff;font-size:18px;line-height:20px;text-align:center;font-weight:700}
+.igst span{max-width:84px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.igpost{padding-bottom:16px}
+.igph{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:14px}
+.igph .igav{width:36px;height:36px;border:0}
+.igph .nm{display:flex;flex-direction:column;line-height:1.25}
+.igph b{font-weight:600}
+.igph small{color:#a8a8a8;font-size:12px}
+.igfollow{margin-left:auto;background:#262b33;border-radius:10px;padding:7px 16px;font-size:14px;font-weight:600}
+.igph .more{margin-left:auto;font-size:22px;color:#fff}
+.igfollow+.more{margin-left:8px}
+.igimg{width:100%;aspect-ratio:1;background:linear-gradient(160deg,#1c2026,#2b3037) center/cover;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px;position:relative}
+.igheart{position:absolute;font-size:90px;color:#fff;opacity:0;transform:scale(.4);transition:.25s;pointer-events:none}
+.igheart.pop{opacity:.95;transform:scale(1)}
+.igcta{display:flex;justify-content:space-between;align-items:center;background:#0f9d3f;padding:13px 14px;font-weight:600;font-size:15px}
+.igact{display:flex;align-items:center;gap:18px;padding:10px 12px 4px}
+.igact .it{display:flex;align-items:center;gap:6px;font-size:14px}
+.igact svg{width:26px;height:26px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.igact .lk.liked svg{fill:#ff3040;stroke:#ff3040}
+.igact .bm{margin-left:auto}
+.igcap{font-size:14px;line-height:1.4;padding:4px 12px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.igcap.open{display:block}
+.igcap b{font-weight:600}
+.igtime{font-size:12px;color:#a8a8a8;padding:2px 12px}
+.igring.seen{background:#c7c7cc}
+.list,.igstories,.thread,.photos,.body{scrollbar-width:none;-ms-overflow-style:none}
+.list::-webkit-scrollbar,.igstories::-webkit-scrollbar,.thread::-webkit-scrollbar,.photos::-webkit-scrollbar,.body::-webkit-scrollbar{display:none}
+</style>
+</head>
+<body>
+<div id="phone">
+  <div id="status"><span id="sClock">09:41</span><span class="sr"><svg class="sig" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><b>5G</b><span class="bat"><i style="width:85%"></i><em>85</em></span></span></div>
+ 
+ <section id="app-instagram" class="screen" style="background:#0a0d11;color:#fff">
+  <div class="igtop">
+    <svg viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></svg>
+    <span class="igword">Instagram</span>
+    <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.7 4.5 6.4 4.5c2 0 3.7 1.1 5.6 3.2 1.9-2.1 3.6-3.2 5.6-3.2 3.7 0 5.5 3.9 4 7.3C19.5 16.4 12 21 12 21z"/></svg>
+  </div>
+  <div class="list" id="igFeed"></div>
+  <div class="ignav">
+    <div class="igpill" data-back><svg viewBox="0 0 24 24" style="fill:#fff"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg></div>
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M3 9h18M9 3l3 6M15 3l3 6"/><path d="M10 12.5v5l4.5-2.5z" fill="#fff"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M22 3L9.5 13.5M22 3l-7 18-5.5-7.5L2 9z"/></svg>
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-5-5"/></svg>
+   <div class="igme" style="background-image:url('foto4.jpg')">
+  </div>
+</section>
+
+<section id="lock" class="screen wall active">
+  <div class="date" id="lDate"></div>
+  <div class="time" id="lTime">09:41</div>
+  <div id="lockNotifs"></div>
+  <div class="hint">open to unlock</div>
+</section>
+
+  <section id="pass" class="screen wall">
+    <h2>Masukkan Kode Sandi</h2>
+    <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
+    <div class="keys" id="keys"></div>
+    <div class="pbtm"><span>Darurat</span><span id="pCancel">Batal</span></div>
+  </section>
+
+  <section id="home" class="screen wall">
+    <div class="grid" id="grid"></div>
+    <div class="dock" id="dock"></div>
+  </section>
+
+  <section id="app-notes" class="screen light">
+    <div class="bar"><button data-back>‹ Home</button><b>Catatan</b><span style="min-width:60px"></span></div>
+    <div class="list" id="notesList"></div>
+  </section>
+  <section id="note-detail" class="screen light">
+    <div class="bar"><button id="noteBack">‹ Note</button><b id="noteTitle"></b><span style="min-width:60px"></span></div>
+    <div class="body" id="noteBody"></div>
+  </section>
+
+  <section id="app-messages" class="screen light">
+    <div class="bar"><button data-back>‹ Beranda</button><b>Pesan</b><span style="min-width:60px"></span></div>
+    <div class="list" id="chatList"></div>
+  </section>
+  <section id="chat-detail" class="screen light">
+    <div class="bar"><button id="chatBack">‹ Pesan</button><b id="chatName"></b><span style="min-width:60px"></span></div>
+    <div class="thread" id="thread"></div>
+  </section>
+
+  <section id="app-photos" class="screen light">
+    <div class="bar"><button data-back>‹ Beranda</button><b>Foto</b><span style="min-width:60px"></span></div>
+    <div class="photos" id="photoGrid"></div>
+  </section>
+  <div id="viewer"><div class="big" id="vImg"></div><p id="vCap"></p><button id="vClose" style="background:none;border:0;color:#0a84ff;font-size:17px">Tutup</button></div>
+
+  <section id="call" class="screen">
+    <div class="who" id="cName">Kontak</div>
+    <div class="sub">FaceTime Video…</div>
+    <div class="cbtns">
+      <div><button class="dec" id="cDecline">✕</button><small>Tolak</small></div>
+      <div><button class="acc ring" id="cAccept">📹</button><small>Terima</small></div>
+    </div>
+  </section>
+
+  <section id="vc" class="screen">
+    <div class="ph" id="vcPh"></div>
+    <video id="vcVideo" playsinline style="display:none"></video>
+    <div class="top"><b id="vcName"></b><span id="vcTime">00:00</span></div>
+    <div id="me"><video id="meVideo" playsinline muted loop></video><span id="meLbl">kamu</span></div>
+    <div id="subs"></div>
+    <div class="vbtns">
+      <button id="vcMute">🎤</button>
+      <button class="end" id="vcEnd">✕</button>
+    </div>
+  </section>
+</div>
+
+<script>
+/* =====================================================
+   1. CONFIG — EDIT BAGIAN INI SAJA UNTUK ISI CERITA
+   ===================================================== */
+
+/* IKON APP (SVG ala iOS). Ganti/ubah di sini kalau mau */
+const IC = {
+  notes:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><rect width="60" height="18" fill="#ffd60a"/><path d="M0 30H60M0 39H60M0 48H60" stroke="#d1d1d6" stroke-width="1.5"/></svg>`,
+  messages:`<svg viewBox="0 0 60 60"><defs><linearGradient id="gm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ff07f"/><stop offset="1" stop-color="#12b73a"/></linearGradient></defs><rect width="60" height="60" fill="url(#gm)"/><path d="M30 13C18 13 9 20.5 9 30c0 5.2 2.8 9.6 7 12.6-.4 3-2 5.6-4.2 7.4 5.2.2 9-1.8 11.4-3.8 2.2.6 4.6.9 6.8.9 12 0 21-7.5 21-17S42 13 30 13z" fill="#fff"/></svg>`,
+  photos:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><g transform="translate(30 30)" opacity=".85"><ellipse cy="-10" rx="6.5" ry="10" fill="#ff9f0a"/><ellipse cy="-10" rx="6.5" ry="10" fill="#ffd60a" transform="rotate(45)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#32d74b" transform="rotate(90)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#30d5c8" transform="rotate(135)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#0a84ff" transform="rotate(180)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#5e5ce6" transform="rotate(225)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#bf5af2" transform="rotate(270)"/><ellipse cy="-10" rx="6.5" ry="10" fill="#ff375f" transform="rotate(315)"/></g></svg>`,
+  calendar:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><text x="30" y="17" font-size="10" font-weight="600" text-anchor="middle" fill="#ff3b30" font-family="-apple-system,Helvetica,Arial">Minggu</text><text x="30" y="49" font-size="32" font-weight="300" text-anchor="middle" fill="#111" font-family="-apple-system,Helvetica,Arial">25</text></svg>`,
+  instagram:`<svg viewBox="0 0 60 60"><defs><linearGradient id="gi" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#fdc468"/><stop offset=".35" stop-color="#df4996"/><stop offset=".7" stop-color="#a237b6"/><stop offset="1" stop-color="#4c5fd7"/></linearGradient></defs><rect width="60" height="60" fill="url(#gi)"/><rect x="14" y="14" width="32" height="32" rx="9" fill="none" stroke="#fff" stroke-width="3"/><circle cx="30" cy="30" r="7.5" fill="none" stroke="#fff" stroke-width="3"/><circle cx="40" cy="20" r="2" fill="#fff"/></svg>`,
+  maps:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#f3efe6"/><path d="M0 44L60 22V32L0 54z" fill="#fff"/><path d="M0 8L24 0H34L0 18z" fill="#8fd18f"/><path d="M38 60L60 52V60z" fill="#8fd18f"/><path d="M22 60L60 36V42L30 60z" fill="#ffd36e"/><circle cx="30" cy="26" r="10" fill="#ff3b30"/><circle cx="30" cy="26" r="4" fill="#fff"/></svg>`,
+  files:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><path d="M11 20c0-2 1.5-3.5 3.5-3.5h11l4 4.5h16c2 0 3.5 1.5 3.5 3.5v19c0 2-1.5 3.5-3.5 3.5h-31c-2 0-3.5-1.5-3.5-3.5z" fill="#1a8cff"/><path d="M11 26h38" stroke="#6bb6ff" stroke-width="2"/></svg>`,
+  gmail:`<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fff"/><path d="M10 19.5v21c0 1.4 1.1 2.5 2.5 2.5H18V28.5L30 38l12-9.5V43h5.5c1.4 0 2.5-1.1 2.5-2.5v-21c0-2.4-2.7-3.8-4.6-2.3L30 27 14.6 17.2C12.7 15.7 10 17.1 10 19.5z" fill="#ea4335"/><path d="M18 43V28.5l-8-6V40.5c0 1.4 1.1 2.5 2.5 2.5z" fill="#4285f4"/><path d="M42 43V28.5l8-6V40.5c0 1.4-1.1 2.5-2.5 2.5z" fill="#34a853"/></svg>`,
+  phone:`<svg viewBox="0 0 60 60"><defs><linearGradient id="gp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ff07f"/><stop offset="1" stop-color="#12b73a"/></linearGradient></defs><rect width="60" height="60" fill="url(#gp)"/><path d="M19.5 13l6.5 1.8 2.2 8.3-4.4 3.2c2.2 4.7 5.6 8.1 10.4 10.3l3.2-4.2 8.3 2.2 1.8 6.5c-.8 4.2-4.2 7-8.2 7C26 48 12 34 12 20c0-4 3-7 7.5-7z" fill="#fff"/></svg>`,
+  safari:`<svg viewBox="0 0 60 60"><defs><linearGradient id="gs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5ac8fa"/><stop offset="1" stop-color="#0a6cff"/></linearGradient></defs><rect width="60" height="60" fill="url(#gs)"/><circle cx="30" cy="30" r="19" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M41 19L35 35 19 41 25 25z" fill="#fff"/><path d="M41 19L35 35 25 25z" fill="#ff3b30"/></svg>`
+};
+
+const CONFIG = {
+  passcode: "0518",
+
+  // Isi nama file audio, mis. "ring.mp3". 
+sounds: { tap:"", unlock:"", ambient:"", ring:"ring.mp3", callLoop:"" },
+
+
+  call: {
+    name: "KEEN",         // nama penelepon
+    delay: 3000,         // jeda setelah HP terbuka (ms)
+    videoSrc: "vc.mp4",
+    selfSrc: "me.mp4",
+    retryAfter: 8000,     // telepon ulang kalau ditolak. 0 = tidak
+    subtitles: [          // at = detik ke-, dur = lama tampil (detik)
+      { at: 1,  text: "sea, aku mau cerita", dur: 1 },
+      { at: 2,  text: "Aku abis beli ikan cupang, udang terus beli makan buat moli.", dur: 5 },
+      { at: 6,  text: "ikan sama udangnya imut kaya minta dibawa pulang semua", dur: 3 },
+      { at: 9,  text: "aku lagi di bangkok loh, ga ngajak aku?", dur: 4 },
+      { at: 11, text: "kan biasanya kamu di chonburi ih, yaudah aku mau tidurrr", dur: 4 }
+    ]
+  },
+
+
+  // Notifikasi lock screen. app/icon/color = tampilan aplikasinya, title = nama pengirim, text = isi pesan
+  lockNotifs: [
+    { app: "Message", icon: "💬", color: "#25d366", title: "KEEN", text: "AKU BARU BELI UDANG BARUUUUUU", time: "sekarang" }
+  ],
+
+  // open: "notes" | "messages" | "photos" | null (belum aktif)
+  apps: [
+    { name: "Catatan",   icon: IC.notes,     bg: "transparent", open: "notes" },
+    { name: "Pesan",     icon: IC.messages,  bg: "transparent", open: "messages", badge: 1 },
+    { name: "Foto",      icon: IC.photos,    bg: "transparent", open: "photos" },
+    { name: "Kalender",  icon: IC.calendar,  bg: "transparent", open: null },
+    { name: "Instagram", icon: IC.instagram, bg: "transparent", open: "instagram" },
+    { name: "Maps",      icon: IC.maps,      bg: "transparent", open: null },
+    { name: "File",      icon: IC.files,     bg: "transparent", open: null },
+    { name: "Gmail",     icon: IC.gmail,     bg: "transparent", open: null }
+  ],
+  dock: [
+    { name: "Telepon", icon: IC.phone,  bg: "transparent", open: null },
+    { name: "safari",  icon: IC.safari, bg: "transparent", open: null }
+  ],
+
+  // img (opsional) = foto di dalam catatan, mis. img: "foto1.jpg"
+  notes: [
+    { title: "catatan belanja", preview: "beli micin..moto moto apa tuh", body: "beli micin..moto moto sps tuh", img: "" },
+    { title: "titipan", preview: "keen minta bawain oleh oleh chonburi", body: "keen minta bawain oleh oleh chonburi" }
+  ],
+
+  // from: "them" (kiri) atau "me" (kanan)
+  chats: [
+    { name: "Keen", avatar: "pp.jpg", messages: [
+      { from: "them", text: "AKU BARU BELI UDANG BARUUUUUU" },
+      { from: "me",   text: "mana mau liatt." },
+      { from: "them", text: "bentar mau cerita." }
+    ]}
+  ],
+instagram: {
+  stories: [
+    { name: "Cerita Anda", avatar: "foto4.jpg", mine: true },
+    { name: "keenkeno", avatar: "pp.jpg" }
+  ],
+  posts: [
+    {
+      user: "aksi.hijau.id", avatar: "megaphone.jpg", img: "post1.jpg",
+      time: "2 jam lalu", likes: 1284, comments: 48,
+      caption: "ASAP BUKAN PEMANDANGAN NORMAL.\nSetiap tahun yang sama, setiap tahun yang kita hirup.\n\nKami menuntut penegakan hukum yang tegas dan pencegahan yang serius, bukan sekadar pemadaman setelah api membesar.\n\n#StopKarhutla #HutanBukanKorban #UdaraBersih"
+    },
+    {
+      user: "kucingimut", avatar: "kitten.jpg", img: "kitten.jpg",
+      time: "5 jam lalu", likes: 842, comments: 31,
+      caption: "kucing oyen"
+    },
+    {
+      user: "rakyat.peduli", avatar: "pp3.jpg", img: "post3.jpg",
+      time: "kemarin", likes: 2310, comments: 96,
+      caption: "if you burn, you burn with us"
+    }
+  ]
+},
+
+
+photos: [
+    { src: "foto1.jpg", caption: "date" },
+    { src: "foto2.jpg", caption: "??" },
+    { src: "foto3.jpg", caption: "pacar aku" },
+    { src: "foto4.jpg", caption: "anak gue" }
+  ]
+};
+/* 2. HOOKS — opsional, taruh kejadian sendiri */
+const HOOKS = {
+  onUnlock()       {},
+  onOpen(appName)  {},
+  onCallIncoming() {},
+  onCallAccepted() {},
+  onCallDeclined() {},
+  onCallEnded()    {}
+};
+
+/* =====================================================
+   3. ENGINE — TIDAK PERLU DIUBAH DULU
+   ===================================================== */
+const $ = s => document.querySelector(s);
+const state = { entered:"", ambient:null, ring:null, loop:null, sec:0, iv:null, subTimers:[], muted:false };
+
+function snd(key, loop){
+  const src = CONFIG.sounds[key]; if(!src) return null;
+  const a = new Audio(src); a.loop = !!loop; a.play().catch(()=>{}); return a;
+}
+function stop(a){ if(a) a.pause(); }
+function show(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $("#"+id).classList.add("active");
+  $("#status").classList.toggle("dark", $("#"+id).classList.contains("light"));
+}
+function clock(){
+  const d = new Date(), t = d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}).replace(".",":");
+  $("#sClock").textContent = t; $("#lTime").textContent = t;
+  $("#lDate").textContent = d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"});
+}
+setInterval(clock,1000); clock();
+function toHome(){ show("home"); }
+
+/* lock */
+CONFIG.lockNotifs.forEach(n=>{
+  const d=document.createElement("div"); d.className="notif";
+  d.innerHTML='<div class="nh"><i class="ni"></i><em class="na"></em><em class="nt"></em></div><b></b><span></span>';
+  const ni=d.querySelector(".ni"); ni.textContent=n.icon||"💬"; ni.style.background=n.color||"#25d366";
+  d.querySelector(".na").textContent=n.app||"Pesan"; d.querySelector(".nt").textContent=n.time||"sekarang";
+  d.querySelector("b").textContent=n.title; d.querySelector("span").textContent=n.text;
+  $("#lockNotifs").appendChild(d);
+});
+$("#lock").addEventListener("click",()=>{ snd("tap"); show("pass"); });
+$("#pCancel").addEventListener("click",()=>show("lock"));
+
+/* passcode */
+["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(k=>{
+  const b=document.createElement("button");
+  if(!k) b.className="blank"; else b.textContent=k;
+  b.addEventListener("click",()=>{
+    if(!k) return; snd("tap");
+    if(k==="⌫") state.entered=state.entered.slice(0,-1);
+    else if(state.entered.length<4) state.entered+=k;
+    document.querySelectorAll("#dots i").forEach((d,i)=>d.classList.toggle("on",i<state.entered.length));
+    if(state.entered.length===4){
+      if(state.entered===CONFIG.passcode) setTimeout(unlock,200);
+      else { const d=$("#dots"); d.classList.add("shake"); if(navigator.vibrate) navigator.vibrate(120);
+        setTimeout(()=>{ d.classList.remove("shake"); state.entered=""; document.querySelectorAll("#dots i").forEach(x=>x.classList.remove("on")); },420); }
+    }
+  });
+  $("#keys").appendChild(b);
+});
+
+function unlock(){
+  snd("unlock"); show("home");
+  state.ambient = snd("ambient", true);
+  HOOKS.onUnlock();
+  if(CONFIG.call.delay >= 0) setTimeout(startCall, CONFIG.call.delay);
+}
+
+/* home */
+function makeApp(a, parent){
+  const el=document.createElement("div"); el.className="app"; el.style.position="relative";
+  el.innerHTML=`<div class="iw"><div class="ico" style="background:${a.bg}">${a.icon}</div>${a.badge?`<b class="badge">${a.badge}</b>`:""}</div><span>${a.name}</span>`;
+  el.addEventListener("click",()=>{ snd("tap"); if(a.open){ show("app-"+a.open); HOOKS.onOpen(a.open); } });
+  parent.appendChild(el);
+}
+CONFIG.apps.forEach(a=>makeApp(a,$("#grid")));
+CONFIG.dock.forEach(a=>makeApp(a,$("#dock")));
+document.querySelectorAll("[data-back]").forEach(b=>b.addEventListener("click",()=>{ snd("tap"); toHome(); }));
+
+/* notes */
+CONFIG.notes.forEach(n=>{
+  const r=document.createElement("div"); r.className="row"; r.innerHTML="<b></b><span></span>";
+  r.querySelector("b").textContent=n.title; r.querySelector("span").textContent=n.preview||"";
+  r.addEventListener("click",()=>{
+    snd("tap"); $("#noteTitle").textContent=n.title; $("#noteBody").textContent=n.body;
+    if(n.img){ const i=document.createElement("img"); i.src=n.img; i.style.cssText="display:block;width:100%;margin-top:14px;border-radius:10px"; $("#noteBody").appendChild(i); }
+    show("note-detail");
+  });
+  $("#notesList").appendChild(r);
+});
+$("#noteBack").addEventListener("click",()=>show("app-notes"));
+
+/* messages */
+CONFIG.chats.forEach(c=>{
+  const last=c.messages[c.messages.length-1];
+  const r=document.createElement("div"); r.className="row"; r.innerHTML="<b></b><span></span>";
+  r.querySelector("b").textContent=c.name; r.querySelector("span").textContent=last?last.text:"";
+  r.addEventListener("click",()=>{
+    snd("tap"); $("#chatName").textContent=c.name; const t=$("#thread"); t.innerHTML="";
+    c.messages.forEach(m=>{ const d=document.createElement("div"); d.className="msg "+m.from; d.textContent=m.text; t.appendChild(d); });
+    show("chat-detail"); t.scrollTop=t.scrollHeight;
+  });
+  $("#chatList").appendChild(r);
+});
+$("#chatBack").addEventListener("click",()=>show("app-messages"));
+
+/* photos */
+CONFIG.photos.forEach(p=>{
+  const d=document.createElement("div");
+  if(p.src) d.style.backgroundImage=`url("${p.src}")`; else d.textContent="foto";
+  d.addEventListener("click",()=>{
+    snd("tap"); $("#vImg").style.backgroundImage=p.src?`url("${p.src}")`:"none"; $("#vCap").textContent=p.caption||""; $("#viewer").classList.add("on");
+  });
+  $("#photoGrid").appendChild(d);
+});
+$("#vClose").addEventListener("click",()=>$("#viewer").classList.remove("on"));
+
+/* instagram */
+(function(){
+  const ig = CONFIG.instagram, feed = $("#igFeed");
+  const av = src => { const a = document.createElement("div"); a.className = "igav"; if(src) a.style.backgroundImage = `url("${src}")`; return a; };
+  const ICON = {
+    heart:'<path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.7 4.5 6.4 4.5c2 0 3.7 1.1 5.6 3.2 1.9-2.1 3.6-3.2 5.6-3.2 3.7 0 5.5 3.9 4 7.3C19.5 16.4 12 21 12 21z"/>',
+    cmt:'<path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.5L3 20.5l1.6-5.3A8.5 8.5 0 1 1 21 11.5z"/>',
+    rep:'<path d="M17 2l4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4M21 13v2a3 3 0 0 1-3 3H3"/>',
+    send:'<path d="M22 3L9.5 13.5M22 3l-7 18-5.5-7.5L2 9z"/>',
+    bm:'<path d="M6 3h12v18l-6-4.5L6 21z"/>'
+  };
+  const fmt = n => n.toLocaleString("id-ID");
+
+  /* cerita */
+  const sw = document.createElement("div"); sw.className = "igstories";
+  ig.stories.forEach(s=>{
+    const d = document.createElement("div"); d.className = "igst";
+    d.innerHTML = '<div class="igring"></div><span></span>' + (s.mine ? '<div class="igplus">+</div>' : "");
+    const ring = d.querySelector(".igring");
+    if(s.mine) ring.classList.add("mine");
+    ring.appendChild(av(s.avatar));
+    d.querySelector("span").textContent = s.name;
+    sw.appendChild(d);
+  });
+  feed.appendChild(sw);
+
+  /* post */
+  ig.posts.forEach(p=>{
+    const d = document.createElement("div"); d.className = "igpost";
+    d.innerHTML =
+      '<div class="igph"><div class="nm"><b></b><small></small></div></div>' +
+      '<div class="igimg"><div class="igheart">♥</div></div>' +
+      (p.sponsored ? '<div class="igcta"><span></span><span>›</span></div>' : "") +
+      '<div class="igact">' +
+        '<div class="it lk"><svg viewBox="0 0 24 24">' + ICON.heart + '</svg><span class="n"></span></div>' +
+        '<div class="it"><svg viewBox="0 0 24 24">' + ICON.cmt + '</svg><span>' + fmt(p.comments || 0) + '</span></div>' +
+        '<div class="it"><svg viewBox="0 0 24 24">' + ICON.rep + '</svg></div>' +
+        '<div class="it"><svg viewBox="0 0 24 24">' + ICON.send + '</svg></div>' +
+        '<div class="it bm"><svg viewBox="0 0 24 24">' + ICON.bm + '</svg></div>' +
+      '</div>' +
+      '<div class="igcap"><b></b> <span></span></div><div class="igtime"></div>';
+
+    const head = d.querySelector(".igph");
+    head.insertBefore(av(p.avatar), head.firstChild);
+    head.querySelector("b").textContent = p.user;
+    head.querySelector("small").textContent = p.sponsored ? "Berisponsor" : p.time;
+    if(p.sponsored){
+      const f = document.createElement("div"); f.className = "igfollow"; f.textContent = "Follow"; head.appendChild(f);
+    }
+    const more = document.createElement("span"); more.className = "more"; more.textContent = "═"; head.appendChild(more);
+    if(p.sponsored) d.querySelector(".igcta span").textContent = p.cta || "Pelajari selengkapnya";
+
+    const img = d.querySelector(".igimg");
+    if(p.img) img.style.backgroundImage = `url("${p.img}")`;
+    else img.insertAdjacentText("afterbegin", "foto");
+
+    const lk = d.querySelector(".lk"), n = lk.querySelector(".n"), heart = d.querySelector(".igheart");
+    let liked = false;
+    const render = () => { lk.classList.toggle("liked", liked); n.textContent = fmt(p.likes + (liked ? 1 : 0)); };
+    render();
+    lk.addEventListener("click", ()=>{ liked = !liked; render(); });
+    img.addEventListener("dblclick", ()=>{
+      liked = true; render();
+      heart.classList.add("pop"); setTimeout(()=>heart.classList.remove("pop"), 600);
+    });
+
+    const cap = d.querySelector(".igcap");
+    cap.querySelector("b").textContent = p.user;
+    cap.querySelector("span").textContent = p.caption;
+    cap.addEventListener("click", ()=>cap.classList.add("open"));
+    d.querySelector(".igtime").textContent = p.time;
+    feed.appendChild(d);
+  });
+})();
+
+/* panggilan masuk */
+function startCall(){
+  if($("#vc").classList.contains("active")) return;
+  $("#cName").textContent = CONFIG.call.name;
+  show("call");
+  state.ring = snd("ring", true);
+  if(navigator.vibrate) navigator.vibrate([400,300,400,300,400]);
+  HOOKS.onCallIncoming();
+}
+$("#cDecline").addEventListener("click",()=>{
+  stop(state.ring); toHome(); HOOKS.onCallDeclined();
+  if(CONFIG.call.retryAfter > 0) setTimeout(startCall, CONFIG.call.retryAfter);
+});
+$("#cAccept").addEventListener("click",()=>{ stop(state.ring); beginVC(); HOOKS.onCallAccepted(); });
+
+/* video call */
+function beginVC(){
+  const c = CONFIG.call, v = $("#vcVideo");
+  $("#vcName").textContent = c.name;
+  $("#vcPh").textContent = (c.name||"?").trim().charAt(0).toUpperCase();
+  $("#vcTime").textContent = "00:00"; $("#subs").innerHTML = "";
+  state.sec = 0; state.muted = false;
+  $("#vcMute").classList.remove("off"); $("#vcMute").textContent = "🎤";
+  show("vc");
+  if(c.videoSrc){
+    v.src = c.videoSrc; v.muted = false; v.style.display = "block"; $("#vcPh").style.display = "none";
+    v.play().catch(()=>{}); v.onended = endVC;
+  } else {
+    v.style.display = "none"; $("#vcPh").style.display = "flex"; v.onended = null;
+  }
+  const mv = $("#meVideo");
+  if(c.selfSrc){
+    mv.src = c.selfSrc; mv.muted = true; mv.currentTime = 0;
+    mv.onplaying = ()=>{ mv.style.display = "block"; $("#meLbl").style.display = "none"; };
+    mv.play().catch(()=>{});
+  } else { mv.style.display = "none"; $("#meLbl").style.display = ""; }
+  state.loop = snd("callLoop", true);
+  clearInterval(state.iv);
+  state.iv = setInterval(()=>{
+    state.sec++;
+    const m=String(Math.floor(state.sec/60)).padStart(2,"0"), s=String(state.sec%60).padStart(2,"0");
+    $("#vcTime").textContent = m+":"+s;
+  },1000);
+  state.subTimers.forEach(clearTimeout); state.subTimers = [];
+  (c.subtitles||[]).forEach(l=>{
+    state.subTimers.push(setTimeout(()=>{ $("#subs").innerHTML="<span></span>"; $("#subs span").textContent=l.text; }, l.at*1000));
+    state.subTimers.push(setTimeout(()=>{ $("#subs").innerHTML=""; }, (l.at+(l.dur||3))*1000));
+  });
+}
+function endVC(){
+  clearInterval(state.iv); state.subTimers.forEach(clearTimeout); state.subTimers = [];
+  const v = $("#vcVideo"); v.pause(); v.removeAttribute("src"); v.load();
+  const mv = $("#meVideo"); mv.pause(); mv.removeAttribute("src"); mv.load(); mv.style.display = "none"; $("#meLbl").style.display = "";
+  stop(state.loop); $("#subs").innerHTML = "";
+  toHome(); HOOKS.onCallEnded();
+}
+$("#vcEnd").addEventListener("click", endVC);
+$("#vcMute").addEventListener("click",()=>{
+  state.muted = !state.muted;
+  $("#vcVideo").muted = state.muted;
+  $("#vcMute").classList.toggle("off", state.muted);
+  $("#vcMute").textContent = state.muted ? "🔇" : "🎤";
+});
+</script>
+</body>
+</html>
